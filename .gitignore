@@ -1,0 +1,12 @@
+bin/
+obj/
+publish/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+Thumbs.db
+desktop.ini
+.DS_Store
