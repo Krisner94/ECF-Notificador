@@ -1,12 +1,69 @@
+# Build
 bin/
 obj/
 publish/
+out/
+dist/
+
+# User / IDE
 .vs/
 .vscode/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Logs
+*.log
+
+# OS
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# .NET
+*.cache
+*.pdb
+*.mdb
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# Test / coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Publish (redundante mas seguro)
+**/publish/
+
+# Installer (Inno Setup)
+installer/output/
+installer/files/
+
+# Backup / temp
+*.bak
+*.tmp
+*.temp
+
+# Certificados (NUNCA versionar)
+*.pfx
+*.snk
+
+# Config sensível
+appsettings.Development.json
+appsettings.Local.json
+
+# Windows
+*.lnk
+
+# Scripts gerados
+*.iss.bak
