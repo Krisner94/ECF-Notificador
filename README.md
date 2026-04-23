@@ -2,6 +2,9 @@
 
 O **ECF-Notificador** é um assistente digital que monitora automaticamente o site da Receita Federal para você. Ele verifica se existe uma nova versão do programa **ECF (Escrituração Contábil Fiscal)** disponível, evitando que você precise checar o site manualmente todos os dias.
 
+[DOWNLOAD v1.0.0](https://github.com/Krisner94/ECF-Notificador/releases/download/v1.0.0/ecf-notificador-setup.exe)
+
+
 ---
 
 ## 📦 1. Métodos de Instalação
