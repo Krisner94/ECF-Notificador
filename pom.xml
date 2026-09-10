@@ -28,7 +28,7 @@
         <jsoupVersion>1.18.3</jsoupVersion>
 
         <assertjVersion>3.26.3</assertjVersion>
-        <wiremockVersion>3.10.0</wiremockVersion>
+        <wiremockVersion>3.13.2</wiremockVersion>
 
         <compilerPluginVersion>3.13.0</compilerPluginVersion>
         <jarPluginVersion>3.4.2</jarPluginVersion>
