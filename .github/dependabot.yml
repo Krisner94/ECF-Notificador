@@ -1,0 +1,42 @@
+version: 2
+
+updates:
+  # Dependencias Maven: abre PR automatico quando houver correcao
+  # de seguranca ou versao nova.
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencias"
+      - "seguranca"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # Agrupa atualizacoes de teste em um unico PR.
+      testes:
+        patterns:
+          - "org.junit.*"
+          - "org.mockito*"
+      # Agrupa plugins de build/qualidade.
+      plugins-build:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "com.github.spotbugs:*"
+          - "org.jacoco:*"
+          - "com.puppycrawl.tools:*"
+
+  # Mantem as proprias Actions atualizadas.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencias"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

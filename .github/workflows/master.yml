@@ -1,0 +1,175 @@
+﻿name: Master
+
+# Pipeline de release: roda apenas quando o codigo e mergeado na master.
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: master-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ==================================================================
+  # VERIFICACAO COMPLETA NA MASTER
+  # Roda o ciclo `verify`, que executa na mesma ordem:
+  #   compile -> test -> jacoco -> checkstyle -> pmd -> spotbugs
+  # ==================================================================
+  verify:
+    name: Verificacao completa
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build + testes + qualidade
+        run: mvn -B verify
+
+      - name: Publicar relatorios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-master
+          path: |
+            target/surefire-reports/
+            target/site/
+            target/checkstyle-result.xml
+            target/spotbugsXml.xml
+            target/pmd.xml
+          if-no-files-found: ignore
+
+  # ==================================================================
+  # SEGURANCA NA MASTER: CVEs, grau de risco e SBOM assinavel
+  # ==================================================================
+  security:
+    name: Seguranca (SCA + SBOM)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Gerar SBOM (CycloneDX)
+        run: mvn -B cyclonedx:makeAggregateBom
+
+      - name: Restaurar cache da base NVD
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-master-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nvd-${{ runner.os }}-
+
+      - name: OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          # Monta o argumento da chave NVD apenas quando o secret existe.
+          if [ -n "$NVD_API_KEY" ]; then
+            echo "Usando NVD_API_KEY do repositorio."
+            KEY_ARG="-Dnvd.api.key=$NVD_API_KEY"
+          else
+            echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
+            KEY_ARG=""
+          fi
+          mvn -B org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 $KEY_ARG
+
+      - name: Publicar SBOM e relatorios de seguranca
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-e-seguranca
+          path: |
+            target/bom.json
+            target/bom.xml
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+            target/dependency-check-report.sarif
+          if-no-files-found: ignore
+
+  # ==================================================================
+  # PACOTE DE RELEASE (fat JAR) anexado ao artefato
+  # ==================================================================
+  release-artifact:
+    name: Empacotar release
+    needs: [ verify ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Gerar fat JAR
+        run: mvn -B package -DskipTests
+
+  # ==================================================================
+  # BINARIO NATIVO PARA RELEASE (GraalVM Native Image)
+  #
+  #    Gera o .exe sem JVM. Roda em windows-latest porque o binario e
+  #    especifico da plataforma.
+  #
+  #    continue-on-error: a aplicacao usa AWT/Swing e o java.desktop nao
+  #    tem suporte oficial no Native Image. Remova quando a limitacao
+  #    deixar de existir e o binario passar a ser obrigatorio.
+  # ==================================================================
+  native-release:
+    name: Binario nativo para release
+    needs: [ verify ]
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar GraalVM (JDK 25)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+          native-image-job-reports: 'true'
+
+      - name: Gerar executavel nativo
+        run: mvn -B -Pnative -DskipTests package
+
+      - name: Publicar binario nativo
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecf-notificador-native-release
+          path: target/*.exe
+          if-no-files-found: warn
+
+      - name: Publicar JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecf-notificador-release
+          path: target/ECF-Notificador-*.jar
+          if-no-files-found: error

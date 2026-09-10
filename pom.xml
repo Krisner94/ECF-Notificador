@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>ECF-Notificador</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>ECF-Notificador</name>
+    <description>
+        Notificador de atualizacoes do programa ECF (Escrituracao Contabil
+        Fiscal) da Receita Federal. Aplicacao desktop Windows.
+    </description>
+
+    <properties>
+        <flatlafVersion>3.4</flatlafVersion>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <nativeMavenPluginVersion>1.1.12</nativeMavenPluginVersion>
+
+        <jacksonVersion>2.22.2</jacksonVersion>
+        <jnaVersion>5.19.1</jnaVersion>
+        <slf4jVersion>2.0.9</slf4jVersion>
+        <jsoupVersion>1.18.3</jsoupVersion>
+
+        <assertjVersion>3.26.3</assertjVersion>
+        <wiremockVersion>3.10.0</wiremockVersion>
+
+        <compilerPluginVersion>3.13.0</compilerPluginVersion>
+        <jarPluginVersion>3.4.2</jarPluginVersion>
+        <shadePluginVersion>3.6.0</shadePluginVersion>
+
+        <junitVersion>5.11.4</junitVersion>
+        <surefireVersion>3.6.0</surefireVersion>
+        <jacocoVersion>0.8.15</jacocoVersion>
+        <!-- Medido: 76,3% de instrucoes. -->
+        <coverageMinimum>0.70</coverageMinimum>
+
+        <checkstylePluginVersion>3.6.0</checkstylePluginVersion>
+        <checkstyleVersion>10.21.4</checkstyleVersion>
+        <pmdPluginVersion>3.28.0</pmdPluginVersion>
+        <spotbugsPluginVersion>4.10.4.1</spotbugsPluginVersion>
+        <findsecbugsVersion>1.14.0</findsecbugsVersion>
+
+        <cyclonedxVersion>2.9.3</cyclonedxVersion>
+        <dependencyCheckVersion>12.1.3</dependencyCheckVersion>
+        <cvssFailThreshold>7</cvssFailThreshold>
+        <!-- Sobrescrita na pipeline com -Dnvd.api.key=... -->
+        <nvd.api.key></nvd.api.key>
+
+        <enforcerVersion>3.6.3</enforcerVersion>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Alinha jupiter, platform e launcher na mesma versao: o goal
+                 `test` do native-maven-plugin exige launcher e engines
+                 compativeis. -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junitVersion}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jacksonVersion}</version>
+        </dependency>
+        <!-- API e implementacao declaradas explicitamente: o codigo importa
+             org.slf4j diretamente em 13 classes. Depender da versao trazida
+             transitivamente pelo slf4j-simple quebra o build se a
+             implementacao for trocada (ex.: logback). -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4jVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4jVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jnaVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>${flatlafVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoupVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Exigido pelo goal `test` do native-maven-plugin. -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertjVersion}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Simula o servidor da Receita Federal nos testes de resiliencia. -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>${wiremockVersion}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compilerPluginVersion}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${jarPluginVersion}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>app.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${shadePluginVersion}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!-- Assinaturas quebram o fat JAR apos o merge. -->
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <!-- Modulo de dependencia nao pode ser mesclado. -->
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <!--
+                                    Mescla META-INF/services das dependencias.
+                                    JNA e Jackson registram provedores via
+                                    ServiceLoader; sem isso o fat JAR perde
+                                    esses registros.
+                                -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ==================== Testes unitarios ==================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefireVersion}</version>
+                <configuration>
+                    <!-- Testes de UI precisam de bandeja/janelas reais. -->
+                    <excludedGroups>ui</excludedGroups>
+                    <trimStackTrace>false</trimStackTrace>
+                    <systemPropertyVariables>
+                        <!-- O popup nativo e modal: nao pode ser exibido. -->
+                        <java.awt.headless>true</java.awt.headless>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacocoVersion}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${coverageMinimum}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ============ Analise estatica (papel do Sonar) ============ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstylePluginVersion}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyleVersion}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>${project.basedir}/config/checkstyle/checkstyle.xml</configLocation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <!-- Apenas violacoes de severidade ERROR falham o build. -->
+                    <violationSeverity>error</violationSeverity>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-verify</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>${pmdPluginVersion}</version>
+                <configuration>
+                    <!-- Reporta os achados sem bloquear o merge; a regra de
+                         tipagem (proibido var) fica no Checkstyle. -->
+                    <failOnViolation>false</failOnViolation>
+                    <printFailingErrors>true</printFailingErrors>
+                    <targetJdk>${maven.compiler.release}</targetJdk>
+                    <rulesets>
+                        <ruleset>${project.basedir}/config/pmd/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>pmd-verify</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugsPluginVersion}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Medium</threshold>
+                    <!-- Publica o relatorio sem bloquear por achados pre-existentes. -->
+                    <failOnError>false</failOnError>
+                    <excludeFilterFile>${project.basedir}/config/spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${findsecbugsVersion}</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotbugs-verify</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ===== SBOM: inventario de dependencias (CVE/VEX) ===== -->
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>${cyclonedxVersion}</version>
+                <executions>
+                    <execution>
+                        <id>make-sbom</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${enforcerVersion}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[25,)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.8,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- SCA / CVEs das dependencias. Separado do build padrao porque baixa a
+             base NVD (pesado). Uso: mvn verify -Psecurity -->
+        <profile>
+            <id>security</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>${dependencyCheckVersion}</version>
+                        <configuration>
+                            <failBuildOnCVSS>${cvssFailThreshold}</failBuildOnCVSS>
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                                <format>SARIF</format>
+                            </formats>
+                            <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                            <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>dependency-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Executavel .exe sem JVM. REQUER JDK GraalVM 25 (nao serve Temurin).
+             Uso: mvn -Pnative -DskipTests package
+             Saida: target/ECF-Notificador.exe
+             O binario perde bandeja e tela de Configuracoes (AWT/Swing nao tem
+             suporte no Native Image). Ver docs/NATIVE.md. -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${nativeMavenPluginVersion}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>ECF-Notificador</imageName>
+                            <mainClass>app.App</mainClass>
+                            <metadataRepository>
+                                <enabled>true</enabled>
+                            </metadataRepository>
+                            <buildArgs>
+                                <!-- Sem "no-fallback" o build pode "passar"
+                                     gerando um binario que ainda precisa de JVM. -->
+                                <buildArg>--no-fallback</buildArg>
+                                <!-- HttpClient chama o Gist e a RFB por HTTPS. -->
+                                <buildArg>--enable-url-protocols=https</buildArg>
+                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- Compila e roda os TESTES como imagem nativa.
+             Uso: mvn -Pnative-test test
+             Exclui os testes marcados "servidor" (WireMock sobe Jetty) e "ui". -->
+        <profile>
+            <id>native-test</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${surefireVersion}</version>
+                        <configuration>
+                            <excludedGroups>ui,servidor</excludedGroups>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${nativeMavenPluginVersion}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>native-tests-build</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>ecf-notificador-tests</imageName>
+                            <metadataRepository>
+                                <enabled>true</enabled>
+                            </metadataRepository>
+                            <buildArgs>
+                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

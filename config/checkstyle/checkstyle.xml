@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    Regras de estilo e tipagem do ECF-Notificador.
+
+    Regra obrigatoria do projeto: e PROIBIDO usar `var` para declarar
+    variaveis, parametros ou campos. Todos os tipos devem ser explicitos.
+    Ver o modulo RegexpSinglelineJava "ProibidoVar" abaixo.
+-->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <!--
+        Severidade padrao = warning: as regras abaixo sao REPORTADAS sem quebrar
+        o build. Somente as regras do projeto (ataques marcados com
+        severity=error, como a proibicao de `var`) falham a pipeline.
+        O plugin roda com violationSeverity=error.
+    -->
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
+
+    <module name="NewlineAtEndOfFile"/>
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+    <module name="RegexpSingleline">
+        <!-- Sem espacos em branco no fim das linhas. -->
+        <property name="format" value="[ \t]+$"/>
+        <property name="message" value="Remova os espacos em branco no fim da linha."/>
+    </module>
+
+    <module name="TreeWalker">
+
+        <!-- ===================================================== -->
+        <!--  TIPAGEM OBRIGATORIA: `var` e PROIBIDO                -->
+        <!-- ===================================================== -->
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="ProibidoVar"/>
+            <!-- REGRA OBRIGATORIA: falha a pipeline. -->
+            <property name="severity" value="error"/>
+            <!--
+                Detecta `var` apenas em POSICAO DE TIPO: inicio da linha ou
+                logo apos `(`, `{`, `;` ou `,`, seguido de um identificador e
+                de um delimitador de declaracao.
+
+                Exigir a posicao evita falsos positivos dentro de textos, como
+                em `String t = "usar var aqui";`, que de outra forma falharia o
+                build indevidamente.
+            -->
+            <property name="format"
+                      value="(^\s*|[({;,]\s*)var\s+[A-Za-z_$][\w$]*\s*[=;:,)]"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message"
+                      value="Uso de 'var' nao permitido. Declare o tipo explicitamente."/>
+        </module>
+
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="ProibidoVarEmParametro"/>
+            <!-- REGRA OBRIGATORIA: falha a pipeline. -->
+            <property name="severity" value="error"/>
+            <!-- `var` em parametro de lambda sem parenteses: x -> { var y = 1; } -->
+            <property name="format" value="=>\s*\{[^}]*\bvar\s+[A-Za-z_$][\w$]*\s*[=;]"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message"
+                      value="Uso de 'var' nao permitido. Declare o tipo explicitamente."/>
+        </module>
+
+        <!-- ===================================================== -->
+        <!--  BOAS PRATICAS / LEGIBILIDADE                         -->
+        <!-- ===================================================== -->
+        <module name="AvoidStarImport"/>
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="true"/>
+        </module>
+        <module name="RedundantImport"/>
+        <module name="EqualsHashCode"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <module name="FallThrough"/>
+        <module name="EmptyStatement"/>
+        <module name="DefaultComesLast"/>
+        <module name="UpperEll"/>
+        <module name="PackageDeclaration"/>
+        <module name="OneTopLevelClass"/>
+        <module name="ModifierOrder"/>
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+        </module>
+        <module name="NeedBraces"/>
+        <module name="LeftCurly"/>
+        <module name="RightCurly"/>
+        <module name="WhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="GenericWhitespace"/>
+        <module name="MethodParamPad"/>
+        <module name="ParenPad"/>
+
+        <module name="IllegalCatch">
+            <property name="illegalClassNames"
+                      value="java.lang.Error, java.lang.RuntimeException"/>
+            <property name="severity" value="info"/>
+        </module>
+
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="MethodName"/>
+        <module name="ParameterName"/>
+        <module name="ConstantName"/>
+        <module name="TypeName"/>
+        <module name="PackageName"/>
+
+    </module>
+</module>

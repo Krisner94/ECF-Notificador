@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="ECF-Notificador"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+
+    <description>
+        Analise estatica do ECF-Notificador (papel equivalente ao SonarQube).
+        Foco em: tipagem explicita, correcao e seguranca.
+    </description>
+
+    <!-- Sem `var`: regra explicita de tipagem do projeto. -->
+    <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+    <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+    <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+    <rule ref="category/java/bestpractices.xml/SystemPrintln"/>
+    <rule ref="category/java/bestpractices.xml/AvoidReassigningParameters"/>
+
+    <!-- Correcao -->
+    <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+    <rule ref="category/java/errorprone.xml/AvoidCatchingNPE"/>
+    <rule ref="category/java/errorprone.xml/AvoidLiteralsInIfCondition"/>
+    <rule ref="category/java/errorprone.xml/CloseResource"/>
+    <rule ref="category/java/errorprone.xml/CompareObjectsWithEquals"/>
+    <rule ref="category/java/errorprone.xml/ProperLogger"/>
+
+    <!-- Seguranca -->
+    <rule ref="category/java/security.xml"/>
+</ruleset>

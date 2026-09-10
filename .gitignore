@@ -1,69 +1,53 @@
-# Build
-bin/
-obj/
-publish/
-out/
-dist/
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
 
-# User / IDE
-.vs/
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
 .vscode/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
 
-# Rider / JetBrains
-.idea/
-*.sln.iml
-
-# Logs
-*.log
-
-# OS
-Thumbs.db
-desktop.ini
+### Mac OS ###
 .DS_Store
 
-# .NET
-*.cache
-*.pdb
-*.mdb
-
-# NuGet
-*.nupkg
-*.snupkg
-packages/
-.nuget/
-
-# Test / coverage
-TestResults/
-coverage/
-*.coverage
-*.coveragexml
-
-# Publish (redundante mas seguro)
-**/publish/
-
-# Installer (Inno Setup)
-installer/output/
-installer/files/
-
-# Backup / temp
-*.bak
-*.tmp
-*.temp
-
-# Certificados (NUNCA versionar)
-*.pfx
-*.snk
-
-# Config sensível
-appsettings.Development.json
-appsettings.Local.json
-
-# Windows
-*.lnk
-
-# Scripts gerados
-*.iss.bak
+### Pipeline / Seguranca ###
+# Base local do OWASP Dependency-Check e relatorios gerados
+dependency-check-data/
+dependency-check-report.*
+bom.json
+bom.xml
+# Relatorio do Semgrep gerado na pipeline
+semgrep.sarif
+# Cache de analise dos plugins de qualidade
+.sonar/
+.pmd/
+checkstyle-result.xml
+spotbugsXml.xml

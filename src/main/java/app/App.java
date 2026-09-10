@@ -1,0 +1,60 @@
+package app;
+
+import app.form.ConfigForm;
+import app.service.SettingsService;
+import app.service.TrayIconService;
+import app.service.UpdateScheduler;
+import app.service.UpdateService;
+import app.utils.ThemeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Ponto de entrada da aplicacao.
+ *
+ * <p>Roda em segundo plano com um icone na bandeja do Windows e verifica, em
+ * intervalos configuraveis, se ha uma nova versao do programa ECF publicada
+ * pela Receita Federal.</p>
+ */
+public final class App {
+
+    private static final Logger log = LoggerFactory.getLogger(App.class);
+
+    private App() {
+    }
+
+    public static void main(String[] args) {
+        System.setProperty("java.awt.headless", "false");
+
+        // Aplica o tema nativo antes de criar qualquer componente Swing.
+        ThemeService.install();
+
+        SettingsService settings = new SettingsService();
+
+        // Fila unica para todas as verificacoes: menu, duplo clique, agendador e
+        // a verificacao inicial. Ver UpdateScheduler para o motivo.
+        UpdateScheduler scheduler = new UpdateScheduler();
+        UpdateScheduler.CheckTask verificacao = () -> {
+            UpdateService updateService = new UpdateService(settings);
+            return updateService.checkForUpdates();
+        };
+
+        TrayIconService tray = new TrayIconService(settings);
+        tray.addCheckNowAction(() -> scheduler.submit(verificacao));
+        tray.addDoubleClickAction(() -> scheduler.submit(verificacao));
+        tray.addSettingsAction(() -> new ConfigForm(settings).setVisible(true));
+        tray.addExitAction(() -> {
+            scheduler.shutdown();
+            tray.remove();
+            System.exit(0);
+        });
+
+        tray.show();
+
+        scheduler.scheduleAtFixedRate(verificacao, settings.getCheckIntervalHours());
+        scheduler.scheduleGistRefresh(settings::refreshFromGist);
+
+        // Verificacao inicial, pelo mesmo caminho do menu e do duplo clique.
+        scheduler.submit(verificacao);
+    }
+}

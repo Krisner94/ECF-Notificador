@@ -1,0 +1,62 @@
+{
+  "comment": [
+    "Metadata de reachability do GraalVM Native Image para o ECF-Notificador.",
+    "Necessaria porque o Native Image usa closed-world assumption: acesso",
+    "dinamico (reflection, recursos) nao e detectado pela analise estatica.",
+    "Ver docs/NATIVE.md.",
+    "",
+    "Nota sobre o JSoup (usado por app.service.EcfPageParser): verificado que",
+    "o jsoup-1.18.3.jar NAO contem arquivos de recurso alem do MANIFEST/LICENSE",
+    "e nao faz reflection sobre classes da aplicacao. Por isso nao precisa de",
+    "registro aqui - apenas das classes do proprio parser, que sao alcancadas",
+    "por chamada direta."
+  ],
+  "reflection": [
+    {
+      "comment": "Classes preenchidas por reflexao pelo Jackson a partir do appSettings.json.",
+      "type": "app.config.AppConfig",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "app.config.EcfConfig",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "app.config.SettingsData",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "comment": "Enum de textos consultado em tempo de execucao.",
+      "type": "app.utils.Message",
+      "allDeclaredConstructors": true,
+      "allPublicMethods": true
+    },
+    {
+      "comment": "Resultado da verificacao, lido por nome no historico local.",
+      "type": "app.service.UpdateService$CheckResult",
+      "allDeclaredConstructors": true,
+      "allPublicMethods": true
+    }
+  ],
+  "resources": [
+    {
+      "comment": "Configuracao padrao versionada com o projeto.",
+      "glob": "appSettings.json"
+    }
+  ]
+}

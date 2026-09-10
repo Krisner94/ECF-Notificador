@@ -1,0 +1,293 @@
+﻿name: CI
+
+# Dispara em Pull Requests (portao antes do merge) e em pushes para branches
+# de trabalho. A branch principal e tratada pelo workflow master.yml, evitando
+# executar as duas pipelines para o mesmo commit.
+on:
+  pull_request:
+    branches: [ "main", "master" ]
+  push:
+    branches-ignore: [ "main", "master" ]
+  workflow_dispatch:
+
+# Cancela execucoes antigas do mesmo branch/PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ==================================================================
+  # 1) TESTES UNITARIOS + COBERTURA
+  # ==================================================================
+  testes:
+    name: Testes unitarios
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Executar testes
+        run: mvn -B test
+
+      - name: Publicar resultado dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+      - name: Resumo dos testes
+        if: always()
+        run: |
+          echo "### Testes unitarios" >> $GITHUB_STEP_SUMMARY
+          if compgen -G "target/surefire-reports/*.txt" > /dev/null; then
+            cat target/surefire-reports/*.txt >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Nenhum relatorio encontrado." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ==================================================================
+  # 2) ANALISE ESTATICA - equivalente ao SONAR
+  #    (Checkstyle + PMD + SpotBugs/FindSecBugs + cobertura Jacoco)
+  # ==================================================================
+  analise-estatica:
+    name: Analise estatica (Sonar-like)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Checkstyle (inclui regra "proibido var")
+        run: mvn -B checkstyle:check
+
+      - name: Gerar relatorio PMD/CPD
+        if: always()
+        run: mvn -B pmd:pmd pmd:cpd
+
+      - name: Gerar relatorio SpotBugs
+        if: always()
+        run: mvn -B spotbugs:spotbugs
+
+      - name: Cobertura de testes (Jacoco)
+        if: always()
+        run: mvn -B test jacoco:report
+
+      - name: Publicar relatorios de qualidade
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-qualidade
+          path: |
+            target/site/
+            target/checkstyle-result.xml
+            target/spotbugsXml.xml
+            target/pmd.xml
+            target/cpd.xml
+          if-no-files-found: ignore
+
+  # ==================================================================
+  # 3) SEGURANCA DE DEPENDENCIAS (SCA) - equivalente ao VERACODE SCA
+  #    CVEs, grau de risco (CVSS) e SBOM com VEX.
+  # ==================================================================
+  seguranca-dependencias:
+    name: Seguranca de dependencias (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Gerar SBOM (CycloneDX)
+        run: mvn -B cyclonedx:makeAggregateBom
+
+      - name: Restaurar cache da base NVD
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nvd-${{ runner.os }}-
+
+      - name: OWASP Dependency-Check (falha em CVSS >= 7)
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          # Monta o argumento da chave NVD apenas quando o secret existe.
+          # Sem a chave o scan continua, porem bem mais lento.
+          if [ -n "$NVD_API_KEY" ]; then
+            echo "Usando NVD_API_KEY do repositorio."
+            KEY_ARG="-Dnvd.api.key=$NVD_API_KEY"
+          else
+            echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
+            KEY_ARG=""
+          fi
+          mvn -B org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 $KEY_ARG
+
+      - name: Publicar relatorios de seguranca e SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seguranca-dependencias
+          path: |
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+            target/dependency-check-report.sarif
+            target/bom.json
+            target/bom.xml
+          if-no-files-found: ignore
+
+  # ==================================================================
+  # 4) SAST - equivalente ao VERACODE Static Analysis
+  #    Analise de fluxo de dados + regras de injecao (CodeQL/Semgrep)
+  # ==================================================================
+  sast:
+    name: SAST (Veracode-like)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Analise CodeQL (fluxo de dados)
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Executar CodeQL
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"
+
+      - name: Analise Semgrep (regras de seguranca OWASP)
+        run: |
+          python3 -m pip install --quiet semgrep
+          semgrep scan \
+            --config p/java \
+            --config p/owasp-top-ten \
+            --config p/secrets \
+            --sarif --output semgrep.sarif \
+            --error || true
+          echo "### Semgrep" >> $GITHUB_STEP_SUMMARY
+          echo "Relatorio SARIF gerado em semgrep.sarif" >> $GITHUB_STEP_SUMMARY
+
+      - name: Publicar relatorio Semgrep
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-semgrep
+          path: semgrep.sarif
+          if-no-files-found: ignore
+
+  # ==================================================================
+  # 5) BUILD FINAL (somente se tudo passar)
+  # ==================================================================
+  build:
+    name: Build do JAR
+    needs: [ testes, analise-estatica ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Empacotar (fat JAR)
+        run: mvn -B package -DskipTests
+
+      - name: Publicar JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecf-notificador-jar
+          path: target/ECF-Notificador-*.jar
+          if-no-files-found: error
+
+  # ==================================================================
+  # 6) BINARIO NATIVO (GraalVM Native Image)
+  #
+  #    Gera um .exe sem dependencia da JVM.
+  #
+  #    IMPORTANTE: por padrao roda em modo "continue-on-error" porque a
+  #    aplicacao usa AWT/Swing (SystemTray, JDialog) e o modulo java.desktop
+  #    NAO tem suporte oficial no Native Image. Assim o pipeline nao fica
+  #    vermelho enquanto essa limitacao existir.
+  #    Quando o binario passar a ser obrigatorio, remova continue-on-error.
+  # ==================================================================
+  nativo:
+    name: Binario nativo (GraalVM)
+    needs: [ testes ]
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar GraalVM (JDK 25)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+          native-image-job-reports: 'true'
+
+      - name: Diagnostico do ambiente
+        run: |
+          java -version
+          native-image --version
+
+      - name: Gerar executavel nativo
+        run: mvn -B -Pnative -DskipTests package
+
+      - name: Verificar o binario
+        if: success()
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem target -Filter *.exe -Recurse | Select-Object -First 1
+          if ($null -eq $exe) { throw "Binario nativo nao foi gerado." }
+          Write-Host "Binario: $($exe.FullName)"
+          Write-Host "Tamanho: $([math]::Round($exe.Length / 1MB, 2)) MB"
+
+      - name: Publicar binario nativo
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecf-notificador-nativo
+          path: target/*.exe
+          if-no-files-found: warn
