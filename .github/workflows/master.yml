@@ -1,4 +1,4 @@
-﻿name: Master
+name: Master
 
 # Pipeline de release: roda apenas quando o codigo e mergeado na master.
 on:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Publicar relatorios
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: relatorios-master
           path: |
@@ -96,7 +96,7 @@ jobs:
 
       - name: Publicar SBOM e relatorios de seguranca
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-e-seguranca
           path: |
@@ -161,14 +161,14 @@ jobs:
 
       - name: Publicar binario nativo
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-native-release
           path: target/*.exe
           if-no-files-found: warn
 
       - name: Publicar JAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-release
           path: target/ECF-Notificador-*.jar

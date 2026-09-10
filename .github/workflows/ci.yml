@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 # Dispara em Pull Requests (portao antes do merge) e em pushes para branches
 # de trabalho. A branch principal e tratada pelo workflow master.yml, evitando
@@ -41,7 +41,7 @@ jobs:
 
       - name: Publicar resultado dos testes
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: relatorio-testes
           path: target/surefire-reports/
@@ -92,7 +92,7 @@ jobs:
 
       - name: Publicar relatorios de qualidade
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: relatorios-qualidade
           path: |
@@ -150,7 +150,7 @@ jobs:
 
       - name: Publicar relatorios de seguranca e SBOM
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: seguranca-dependencias
           path: |
@@ -204,7 +204,7 @@ jobs:
 
       - name: Publicar relatorio Semgrep
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sast-semgrep
           path: semgrep.sarif
@@ -232,7 +232,7 @@ jobs:
         run: mvn -B package -DskipTests
 
       - name: Publicar JAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-jar
           path: target/ECF-Notificador-*.jar
@@ -286,7 +286,7 @@ jobs:
 
       - name: Publicar binario nativo
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-nativo
           path: target/*.exe
