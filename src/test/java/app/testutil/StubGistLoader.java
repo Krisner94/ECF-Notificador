@@ -15,7 +15,7 @@ public class StubGistLoader extends GistSettingsLoader {
     /** URL apenas simbolica: o metodo {@code load()} e sobrescrito. */
     private static final String URLA_FICTICIA = "https://gist.invalid/appSettings.json";
 
-    private final AppConfig configuravel;
+    private AppConfig configuravel;
 
     /**
      * @param configuravel configuracao que o "Gist" devolve, ou {@code null}
@@ -29,6 +29,14 @@ public class StubGistLoader extends GistSettingsLoader {
     @Override
     public AppConfig load() {
         return configuravel;
+    }
+
+    /**
+     * Troca o conteudo que o "Gist" devolve, simulando uma edicao no GitHub
+     * entre duas recargas.
+     */
+    public void publicar(AppConfig novoConteudo) {
+        this.configuravel = novoConteudo;
     }
 
     /** Instancia configurada para simular um Gist indisponivel. */

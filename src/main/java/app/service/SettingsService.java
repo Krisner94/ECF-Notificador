@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.function.Consumer;
 
 public final class SettingsService {
 
@@ -70,20 +71,33 @@ public final class SettingsService {
     /**
      * Baixa a configuracao do Gist e atualiza o cache local.
      *
-     * <p>Chamado na inicializacao. Se o Gist estiver inacessivel, mantem a
-     * configuracao local - o programa continua funcionando offline.</p>
+     * <p>Chamado na inicializacao e periodicamente. Se o Gist estiver
+     * inacessivel, ou se o conteudo baixado nao for utilizavel, mantem a
+     * configuracao local - o programa nunca fica sem configuracao por causa
+     * da rede.</p>
+     *
+     * @return {@code true} quando houve mudanca aplicada; {@code false} quando
+     *         nada mudou (Gist inalterado, indisponivel ou invalido).
      */
-    public void refreshFromGist() {
+    public boolean refreshFromGist() {
         AppConfig baixada = gistLoader.load();
         if (baixada == null) {
-            log.info("Mantendo a configuracao local (Gist indisponivel).");
-            return;
+            log.info("Mantendo a configuracao local (Gist indisponivel ou inalterado).");
+            return false;
         }
 
+        String assinaturaAntes = assinatura(getAppConfig());
         mergeGistIntoLocal(baixada);
+
+        if (assinaturaAntes.equals(assinatura(getAppConfig()))) {
+            log.info("Gist sem mudancas aplicaveis. Configuracao local mantida.");
+            return false;
+        }
 
         // Guarda o que veio do Gist para uso offline na proxima vez.
         saveSettings();
+        log.info("Configuracao atualizada pelo Gist: {}", assinatura(getAppConfig()));
+        return true;
     }
 
     public int getCheckIntervalHours() {
@@ -140,14 +154,23 @@ public final class SettingsService {
     }
 
     /**
-     * Aplica os valores do Gist sobre a configuracao local.
+     * Aplica os valores do Gist sobre a configuracao local, campo a campo.
      *
-     * <p>Excecao: o intervalo de verificacao so e sobrescrito se o usuario ainda
-     * nao tiver escolhido um valor proprio pela tela de Configuracoes.</p>
+     * <p>Somente as chaves presentes no JSON sobrescrevem o valor atual. Uma
+     * chave ausente (ou nula) preserva o que ja existe, e um texto em branco
+     * tambem e ignorado - assim uma edicao incompleta no Gist nunca apaga uma
+     * configuracao que estava funcionando.</p>
+     *
+     * <p>Excecao: o intervalo de verificacao so e sobrescrito se o usuario
+     * ainda nao tiver escolhido um valor proprio pela tela de Configuracoes.</p>
      */
     private void mergeGistIntoLocal(AppConfig origem) {
-        if (origem.getEcf() != null) {
-            getAppConfig().setEcf(origem.getEcf());
+        EcfConfig origemEcf = origem.getEcf();
+        if (origemEcf != null) {
+            EcfConfig destino = getEcf();
+            aplicar(origemEcf.getInstallPath(), destino::setInstallPath);
+            aplicar(origemEcf.getDownloadUrl(), destino::setDownloadUrl);
+            aplicar(origemEcf.getVersionHtmlClass(), destino::setVersionHtmlClass);
         }
 
         SettingsData origemSettings = origem.getSettings();
@@ -156,12 +179,39 @@ public final class SettingsService {
         }
 
         SettingsData destino = getSettings();
-        if (!destino.isIntervalOverriddenByUser()) {
+        if (!destino.isIntervalOverriddenByUser() && origemSettings.getCheckIntervalHours() != null) {
             destino.setCheckIntervalHours(origemSettings.getCheckIntervalHours());
         }
-        if (origemSettings.getIconPath() != null && !origemSettings.getIconPath().isBlank()) {
-            destino.setIconPath(origemSettings.getIconPath());
+        aplicar(origemSettings.getIconPath(), destino::setIconPath);
+    }
+
+    /**
+     * Copia o valor vindo do Gist apenas quando ele e utilizavel.
+     *
+     * <p>{@code null} significa "a chave nao veio no JSON" e branco significa
+     * "veio sem conteudo" - nos dois casos o valor atual e preservado.</p>
+     */
+    private static void aplicar(String valorDoGist, Consumer<String> destino) {
+        if (valorDoGist != null && !valorDoGist.isBlank()) {
+            destino.accept(valorDoGist);
         }
+    }
+
+    /**
+     * Resumo dos valores que o Gist controla, usado para detectar mudanca real.
+     *
+     * <p>Nao inclui o arquivo de configuracao nem o estado de override: aqui
+     * interessa apenas se o conteudo util mudou.</p>
+     */
+    private static String assinatura(AppConfig config) {
+        EcfConfig ecf = config.getEcf();
+        SettingsData settings = config.getSettings();
+        return "ecf=[" + (ecf == null ? "" : ecf.getInstallPath())
+                + "|" + (ecf == null ? "" : ecf.getDownloadUrl())
+                + "|" + (ecf == null ? "" : ecf.getVersionHtmlClass())
+                + "] settings=[" + (settings == null ? "" : settings.getCheckIntervalHours())
+                + "|" + (settings == null ? "" : settings.getIconPath())
+                + "]";
     }
 
     private AppConfig getAppConfig() {

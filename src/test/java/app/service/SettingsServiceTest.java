@@ -4,6 +4,7 @@ import app.config.AppConfig;
 import app.testutil.StubGistLoader;
 import app.testutil.TestConfigs;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -310,5 +311,149 @@ class SettingsServiceTest {
         service.refreshFromGist();
         assertEquals(5, service.getCheckIntervalHours());
         assertFalse(service.getEcfInstallPath().isEmpty());
+    }
+
+    // ===================== Protecao contra edicao parcial no Gist =====================
+
+    @Nested
+    @DisplayName("Gist editado de forma parcial ou incompleta")
+    class GistParcial {
+
+        /** Cache ja populado, representando uma instalacao que ja funcionava. */
+        private SettingsService comCacheBom(Path tempDir, String jsonDoGist) {
+            AppConfig inicial = TestConfigs.build("C:\\SpedECF\\response.varfile",
+                    "https://www.gov.br/ecf", "rfb_subheader", 6, "icone-bom.ico");
+            Path arquivo = arquivoDe(tempDir);
+
+            SettingsService primeiro = new SettingsService(new StubGistLoader(inicial), arquivo);
+            assertFalse(primeiro.getDownloadUrl().isEmpty());
+
+            SettingsService segundo = new SettingsService(
+                    new StubGistLoader(TestConfigs.fromJson(jsonDoGist)), arquivo);
+            segundo.refreshFromGist();
+            return segundo;
+        }
+
+        @Test
+        @DisplayName("Gist que omite o bloco \"Ecf\" nao apaga a configuracao boa")
+        void gistSemBlocoEcfNaoApaga(@TempDir Path tempDir) {
+            SettingsService service = comCacheBom(tempDir,
+                    "{\"Settings\": {\"CheckIntervalHours\": 12}}");
+
+            assertEquals("https://www.gov.br/ecf", service.getDownloadUrl(),
+                    "Uma chave ausente no Gist nao pode zerar o valor atual.");
+            assertTrue(service.getEcfInstallPath().contains("response.varfile"));
+            assertEquals("rfb_subheader", service.getVersionHtmlClass());
+            assertEquals(12, service.getCheckIntervalHours(),
+                    "O campo que veio no Gist deve ser aplicado normalmente.");
+        }
+
+        @Test
+        @DisplayName("Gist que omite o bloco \"Settings\" preserva icone e intervalo")
+        void gistSemBlocoSettingsNaoApaga(@TempDir Path tempDir) {
+            SettingsService service = comCacheBom(tempDir,
+                    "{\"Ecf\": {\"DownloadUrl\": \"https://novo.test\"}}");
+
+            assertEquals("https://novo.test", service.getDownloadUrl());
+            assertEquals("icone-bom.ico", service.getIconPath());
+            assertEquals(6, service.getCheckIntervalHours());
+        }
+
+        @Test
+        @DisplayName("Gist com blocos vazios nao apaga nada")
+        void gistComBlocosVaziosNaoApaga(@TempDir Path tempDir) {
+            SettingsService service = comCacheBom(tempDir, "{\"Ecf\": {}, \"Settings\": {}}");
+
+            assertEquals("https://www.gov.br/ecf", service.getDownloadUrl());
+            assertEquals("icone-bom.ico", service.getIconPath());
+            assertTrue(service.getEcfInstallPath().contains("response.varfile"));
+        }
+
+        @Test
+        @DisplayName("Valores em branco no Gist nao apagam os valores atuais")
+        void gistComValoresEmBrancoNaoApaga(@TempDir Path tempDir) {
+            SettingsService service = comCacheBom(tempDir, """
+                    {
+                      "Ecf": { "DownloadUrl": "   ", "InstallPath": "" },
+                      "Settings": { "IconPath": "" }
+                    }
+                    """);
+
+            assertEquals("https://www.gov.br/ecf", service.getDownloadUrl());
+            assertEquals("icone-bom.ico", service.getIconPath());
+            assertTrue(service.getEcfInstallPath().contains("response.varfile"));
+        }
+
+        @Test
+        @DisplayName("O cache em disco nao e sobrescrito com valores apagados")
+        void cacheNaoGuardaValoresApagados(@TempDir Path tempDir) throws IOException {
+            Path arquivo = arquivoDe(tempDir);
+            comCacheBom(tempDir, "{\"Settings\": {\"CheckIntervalHours\": 12}}");
+
+            String json = Files.readString(arquivo, StandardCharsets.UTF_8);
+
+            assertFalse(json.contains("\"DownloadUrl\" : \"\""),
+                    "O cache nao pode guardar uma URL vazia vinda de um Gist parcial.");
+            assertTrue(json.contains("https://www.gov.br/ecf"),
+                    "O cache deve manter a URL boa que ja existia.");
+        }
+
+        @Test
+        @DisplayName("Gist valido altera a URL, a classe HTML e o caminho na hora")
+        void mudancaDoGistEhAplicada(@TempDir Path tempDir) {
+            SettingsService service = comCacheBom(tempDir, """
+                    {
+                      "Ecf": {
+                        "DownloadUrl": "https://www.gov.br/receitafederal/novo",
+                        "InstallPath": "D:\\\\ECF\\\\outro\\\\response.varfile",
+                        "VersionHtmlClass": "nova_classe"
+                      }
+                    }
+                    """);
+
+            assertEquals("https://www.gov.br/receitafederal/novo", service.getDownloadUrl());
+            assertEquals("D:\\ECF\\outro\\response.varfile", service.getEcfInstallPath());
+            assertEquals("nova_classe", service.getVersionHtmlClass());
+        }
+    }
+
+    // ===================== Deteccao de mudanca =====================
+
+    @Nested
+    @DisplayName("Retorno de refreshFromGist")
+    class SinalDeMudanca {
+
+        @Test
+        @DisplayName("Mudanca publicada no Gist sinaliza mudanca")
+        void gistAlteradoSinalizaMudanca(@TempDir Path tempDir) {
+            AppConfig inicial = TestConfigs.build("caminho", "https://a.test", "cls", 6, "i.ico");
+            StubGistLoader stub = new StubGistLoader(inicial);
+            SettingsService service = new SettingsService(stub, arquivoDe(tempDir));
+
+            // Simula a edicao do Gist no GitHub entre duas recargas.
+            stub.publicar(TestConfigs.build("caminho", "https://b.test", "cls", 6, "i.ico"));
+
+            assertTrue(service.refreshFromGist(), "A URL mudou, entao houve alteracao.");
+            assertEquals("https://b.test", service.getDownloadUrl());
+        }
+
+        @Test
+        @DisplayName("Gist inalterado nao sinaliza mudanca")
+        void gistInalteradoNaoSinaliza(@TempDir Path tempDir) {
+            AppConfig config = TestConfigs.build("caminho", "https://a.test", "cls", 6, "i.ico");
+            SettingsService service = new SettingsService(
+                    new StubGistLoader(config), arquivoDe(tempDir));
+
+            assertFalse(service.refreshFromGist(),
+                    "Recarregar o mesmo conteudo nao deve contar como mudanca.");
+        }
+
+        @Test
+        @DisplayName("Gist indisponivel nao sinaliza mudanca")
+        void gistIndisponivelNaoSinaliza(@TempDir Path tempDir) {
+            SettingsService service = emDiretorio(tempDir, StubGistLoader.indisponivel());
+
+            assertFalse(service.refreshFromGist());
+        }
     }
 }

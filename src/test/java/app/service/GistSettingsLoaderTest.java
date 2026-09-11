@@ -132,8 +132,8 @@ class GistSettingsLoaderTest {
 
     @ParameterizedTest(name = "json: {0}")
     @MethodSource("jsonMinimos")
-    @DisplayName("JSON parcial usa os valores padrao nos campos ausentes")
-    void jsonParcialUsaPadroes(String json, String downloadUrlEsperada, int intervaloEsperado) {
+    @DisplayName("Chave ausente no JSON fica nula, para o merge preservar o valor atual")
+    void jsonParcialDeixaCamposAusentesNulos(String json, String downloadUrlEsperada, Integer intervaloEsperado) {
         AppConfig config = GistSettingsLoader.parse(json);
 
         assertNotNull(config);
@@ -143,12 +143,12 @@ class GistSettingsLoaderTest {
 
     private static Stream<Arguments> jsonMinimos() {
         return Stream.of(
-                // Apenas o Ecf: o intervalo mantem o padrao da classe (6).
-                Arguments.of("{\"Ecf\": {\"DownloadUrl\": \"https://a.test\"}}", "https://a.test", 6),
-                // Apenas o Settings: a URL fica vazia.
-                Arguments.of("{\"Settings\": {\"CheckIntervalHours\": 12}}", "", 12),
-                // Objeto vazio: tudo no padrao.
-                Arguments.of("{}", "", 6)
+                // Apenas o Ecf: o intervalo nao veio, entao fica nulo.
+                Arguments.of("{\"Ecf\": {\"DownloadUrl\": \"https://a.test\"}}", "https://a.test", null),
+                // Apenas o Settings: a URL nao veio, entao fica nula.
+                Arguments.of("{\"Settings\": {\"CheckIntervalHours\": 12}}", null, 12),
+                // Objeto vazio: nada veio, tudo nulo.
+                Arguments.of("{}", null, null)
         );
     }
 

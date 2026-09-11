@@ -42,11 +42,24 @@ public class GistSettingsLoader {
 
     private static final String USER_AGENT = "ECF-Notificador";
 
+    private static final int HTTP_OK = 200;
+
+    /** "Nao modificado": o ETag enviado ainda corresponde ao conteudo atual. */
+    private static final int HTTP_NOT_MODIFIED = 304;
+
+    private static final String ETAG_HEADER = "ETag";
+
     private static final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final String gistUrl;
     private final HttpClient httpClient;
+
+    /**
+     * ETag da ultima resposta 200. Enviado em If-None-Match na proxima vez:
+     * o Gist responde 304 sem corpo, tornando a verificacao periodica barata.
+     */
+    private String lastEtag;
 
     public GistSettingsLoader() {
         this(resolveGistUrl());
@@ -63,8 +76,9 @@ public class GistSettingsLoader {
     /**
      * Le a configuracao do Gist.
      *
-     * @return a configuracao lida, ou {@code null} se o download ou a leitura
-     *         falharem por qualquer motivo.
+     * @return a configuracao lida; ou {@code null} se o download falhar, se o
+     *         conteudo for invalido, ou se o Gist nao mudou desde a ultima
+     *         leitura (HTTP 304).
      */
     public AppConfig load() {
         String json = download();
@@ -79,23 +93,39 @@ public class GistSettingsLoader {
         return gistUrl;
     }
 
+    /** ETag da ultima resposta com conteudo, ou {@code null} se ainda nao houve. */
+    public String getLastEtag() {
+        return lastEtag;
+    }
+
     private String download() {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(gistUrl))
                     .header("User-Agent", USER_AGENT)
                     .header("Accept", "application/json")
                     .timeout(REQUEST_TIMEOUT)
-                    .GET()
-                    .build();
+                    .GET();
+
+            if (lastEtag != null) {
+                builder.header("If-None-Match", lastEtag);
+            }
 
             HttpResponse<String> response =
-                    httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() != 200) {
+            if (response.statusCode() == HTTP_NOT_MODIFIED) {
+                log.debug("Gist inalterado (304). Nenhum download necessario.");
+                return null;
+            }
+
+            if (response.statusCode() != HTTP_OK) {
                 log.warn("Gist respondeu com status {}. Usando configuracao local.", response.statusCode());
                 return null;
             }
+
+            // Guarda o ETag para que a proxima verificacao possa receber 304.
+            response.headers().firstValue(ETAG_HEADER).ifPresent(etag -> this.lastEtag = etag);
             return response.body();
         } catch (IOException e) {
             log.warn("Falha de rede ao ler o Gist ({}). Usando configuracao local.", e.getMessage());

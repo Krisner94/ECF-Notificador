@@ -35,6 +35,11 @@ public final class App {
         // a verificacao inicial. Ver UpdateScheduler para o motivo.
         UpdateScheduler scheduler = new UpdateScheduler();
         UpdateScheduler.CheckTask verificacao = () -> {
+            // Renova a configuracao antes de checar: assim "Verificar agora"
+            // tambem propaga imediatamente uma mudanca feita no Gist, e a
+            // verificacao ja usa a URL e a classe HTML mais recentes.
+            settings.refreshFromGist();
+
             UpdateService updateService = new UpdateService(settings);
             return updateService.checkForUpdates();
         };

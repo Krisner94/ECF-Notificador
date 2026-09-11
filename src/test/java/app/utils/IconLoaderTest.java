@@ -134,9 +134,9 @@ class IconLoaderTest {
     @Test
     @DisplayName("Recurso nao-imagem do classpath nao gera excecao")
     void recursoNaoImagemNaoGeraExcecao() {
-        // appSettings.json existe no classpath: deve chegar ao decode e
+        // Resolve para o proprio .class deste teste: deve chegar ao decode e
         // devolver null por nao ser imagem, sem lancar excecao.
-        assertNull(IconLoader.load("appSettings.json"));
+        assertNull(IconLoader.load("app/utils/IconLoaderTest.class"));
     }
 
     @Test

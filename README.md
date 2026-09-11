@@ -75,11 +75,7 @@ powershell -ExecutionPolicy Bypass -File scripts\relatorio-cobertura.ps1
 
 ## ⚙️ 2. Configuração Inicial
 
-Para que o programa saiba qual versão você já tem instalada, edite o arquivo `config/appSettings.json`:
-
-1. **Localize o arquivo de configuração:** `config/appSettings.json` (ao lado do JAR).
-2. **Edite o arquivo** com seu editor de texto preferido.
-3. Verifique a chave `InstallPath`. Ela deve conter o caminho onde sua ECF está instalada:
+**Não há arquivo de configuração para editar.** O programa busca tudo de um **Gist público do GitHub**, que é a fonte de verdade compartilhada entre todas as instalações.
 
 ```json
 {
@@ -95,11 +91,19 @@ Para que o programa saiba qual versão você já tem instalada, edite o arquivo 
 }
 ```
 
-4. **Salve** o arquivo e feche o editor.
+Na primeira execução o programa baixa esse JSON e grava uma cópia em `config/appSettings.json`,
+que serve **apenas como cache** para funcionar offline. Esse arquivo é regenerado
+sozinho a cada recarga e **não é versionado no git** — editá-lo não adianta, pois o
+Gist sobrescreve os valores na próxima atualização.
+
+> ⚡ **Mudou algo no Gist?** A aplicação pega a alteração **em até 5 minutos**, sem
+> reinstalar nem reiniciar. Para aplicar na hora, use **Verificar agora** no menu
+> da bandeja. Só é preciso atualizar os campos que mudaram: chaves omitidas
+> continuam valendo, então uma edição parcial nunca quebra as instalações.
 
 > 💡 **Ícone:** a chave `IconPath` aceita arquivos `.ico`, `.png`, `.bmp`, `.gif` e `.jpg`. Se o valor não for um caminho absoluto, o programa procura o arquivo na pasta onde o JAR é executado. O mesmo ícone é usado na bandeja **e** no popup de notificação.
 
-Na primeira execução, o programa tenta detectar automaticamente o caminho da ECF se ela estiver instalada no local padrão.
+> 📖 Detalhes de precedência, teste e diagnóstico em [`docs/CONFIGURACAO.md`](docs/CONFIGURACAO.md).
 
 ---
 
@@ -229,7 +233,7 @@ Depois, em ambos os casos:
 ### **Problemas Comuns:**
 
 1. **Ícone não aparece na bandeja:** verifique se o programa está em execução no Gerenciador de Tarefas.
-2. **Não detecta a ECF instalada:** verifique se o caminho em `appSettings.json` está correto.
+2. **Não detecta a ECF instalada:** verifique a chave `Ecf.InstallPath` no [Gist](https://gist.github.com/Krisner94/e2e1820cb36f7bee41a5212fe9dbad35).
 3. **Não inicia com o Windows:** verifique se o atalho está na pasta `shell:startup`.
 
 ### **Como Reportar Problemas:**

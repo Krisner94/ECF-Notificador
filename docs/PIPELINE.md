@@ -38,8 +38,11 @@ config/
 ├── pmd/pmd-ruleset.xml             # Análise estática (Sonar-like)
 └── spotbugs/spotbugs-exclude.xml   # Supressões justificadas + FindSecBugs
 
+# Obs.: config/appSettings.json NÃO é versionado. É o cache local gerado em
+# tempo de execução a partir do Gist (ver docs/CONFIGURACAO.md).
+
 scripts/
-└── build-local.ps1                 # Build + testes sem Maven (uso local)
+└── validar-tudo.cmd                # Build + testes sem Maven (uso local)
 
 src/main/resources/META-INF/native-image/...   # Metadata do GraalVM
 src/test/java/...                    # Testes unitários e parametrizados

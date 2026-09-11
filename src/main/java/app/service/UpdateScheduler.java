@@ -21,7 +21,15 @@ public class UpdateScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateScheduler.class);
 
-    private static final long INTERVALO_REFRESH_GIST_HORAS = 6;
+    /**
+     * Intervalo de recarga da configuracao do Gist.
+     *
+     * <p>5 minutos e o piso util: o CDN do GitHub serve a URL raw com
+     * {@code Cache-Control: max-age=300}, entao verificar mais rapido que isso
+     * nao anteciparia a mudanca. O custo de cada verificacao e minimo porque a
+     * requisicao usa {@code If-None-Match} e normalmente recebe {@code 304}.</p>
+     */
+    private static final long INTERVALO_REFRESH_GIST_MINUTOS = 5;
 
     /** Executa uma verificacao; extraido para os testes observarem as chamadas. */
     @FunctionalInterface
@@ -79,7 +87,7 @@ public class UpdateScheduler {
             } catch (RuntimeException e) {
                 log.warn("Falha ao recarregar a configuracao do Gist: {}", e.getMessage());
             }
-        }, INTERVALO_REFRESH_GIST_HORAS, INTERVALO_REFRESH_GIST_HORAS, TimeUnit.HOURS);
+        }, INTERVALO_REFRESH_GIST_MINUTOS, INTERVALO_REFRESH_GIST_MINUTOS, TimeUnit.MINUTES);
     }
 
     public void shutdown() {

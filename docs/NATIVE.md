@@ -110,7 +110,12 @@ src/main/resources/META-INF/native-image/app/ecf-notificador/reachability-metada
 ```
 
 Esse arquivo registra `AppConfig`, `EcfConfig`, `SettingsData`, o enum `Message`
-e `UpdateService$CheckResult` para reflection, além do recurso `appSettings.json`.
+e `UpdateService$CheckResult` para reflection.
+
+> **Nota:** a configuração **não** é mais um recurso embutido no binário. Ela vem
+do Gist em tempo de execução, então não há `appSettings.json` para declarar em
+`resources` na metadata. O JSON baixado é desserializado pelas mesmas classes
+registradas acima.
 
 ### Sobre o JSoup (verificação feita, não suposição)
 

@@ -52,11 +52,5 @@
       "allDeclaredConstructors": true,
       "allPublicMethods": true
     }
-  ],
-  "resources": [
-    {
-      "comment": "Configuracao padrao versionada com o projeto.",
-      "glob": "appSettings.json"
-    }
   ]
 }

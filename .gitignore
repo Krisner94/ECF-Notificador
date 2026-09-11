@@ -51,3 +51,8 @@ semgrep.sarif
 .pmd/
 checkstyle-result.xml
 spotbugsXml.xml
+
+### Configuracao local (cache) ###
+# A fonte de verdade e o Gist. O app grava o ultimo estado conhecido aqui
+# para funcionar offline, mas esse arquivo NAO e versionado.
+config/appSettings.json

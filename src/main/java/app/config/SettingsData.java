@@ -1,14 +1,23 @@
 package app.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Preferencias locais, vindas do Gist.
+ *
+ * <p>Os campos comecam nulos de proposito: {@code null} significa "esta chave
+ * nao veio no JSON" e o valor atual e preservado no merge. Os valores efetivos
+ * com fallback ficam em {@code app.service.SettingsService}.</p>
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SettingsData {
 
     @JsonProperty("CheckIntervalHours")
-    private Integer checkIntervalHours = 6;
+    private Integer checkIntervalHours;
 
     @JsonProperty("IconPath")
-    private String iconPath = "EcfNotificador.ico";
+    private String iconPath;
 
     /**
      * Marca que o usuario alterou o intervalo pela tela de Configuracoes.
