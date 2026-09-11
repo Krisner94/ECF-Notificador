@@ -218,7 +218,10 @@ public final class TaskDialogService {
     }
 
     private static Memory newWideString(String value, List<Object> keepAlive) {
-        Memory memory = new Memory(((long) value.length() + 1) * 2);
+        // O tamanho de wchar_t depende da plataforma (2 bytes no Windows,
+        // 4 no Linux/Unix). Usar o tamanho fixo 2 estoura o buffer quando a
+        // suíte roda fora do Windows (Bounds exceeds available space).
+        Memory memory = new Memory((long) (value.length() + 1) * Native.WCHAR_SIZE);
         memory.clear();
         memory.setWideString(0, value);
         keepAlive.add(memory);
