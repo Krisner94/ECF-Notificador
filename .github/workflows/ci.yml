@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 # Dispara em Pull Requests (portao antes do merge) e em pushes para branches
 # de trabalho. A branch principal e tratada pelo workflow master.yml, evitando
@@ -128,7 +128,7 @@ jobs:
         run: mvn -B cyclonedx:makeAggregateBom
 
       - name: Restaurar cache da base NVD
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: nvd-${{ runner.os }}-${{ github.run_id }}
