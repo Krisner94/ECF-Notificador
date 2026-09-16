@@ -35,12 +35,12 @@ Com Maven e o JDK 25 instalados, gere o pacote na raiz do projeto:
 mvn clean package
 ```
 
-O arquivo `ECF-Notificador-1.0-SNAPSHOT.jar` (fat JAR com todas as dependências) será gerado na pasta `target/`.
+O arquivo `ECF-Notificador-2.0.jar` (fat JAR com todas as dependências) será gerado na pasta `target/`.
 
 ### **Execução**
 
 ```bash
-java -jar target/ECF-Notificador-1.0-SNAPSHOT.jar
+java -jar target/ECF-Notificador-2.0.jar
 ```
 
 O programa roda discretamente na bandeja do sistema (ao lado do relógio do Windows).
@@ -96,7 +96,7 @@ Gist sobrescreve os valores na próxima atualização.
 
 ### **Primeira Execução**
 
-1. **Abrir o programa:** execute `java -jar ECF-Notificador-1.0-SNAPSHOT.jar`.
+1. **Abrir o programa:** execute `java -jar ECF-Notificador-2.0.jar`.
 2. **Ícone na Bandeja:** o programa roda discretamente ao lado do relógio do Windows.
 3. **Configuração inicial:** verifique se o caminho da ECF está correto nas configurações.
 

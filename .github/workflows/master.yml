@@ -1,9 +1,10 @@
 ﻿name: Master
 
-# Pipeline de release: roda apenas quando o codigo e mergeado na master.
+# Pipeline de release: valida pushes na master e publica releases em tags v*.
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*" ]
   workflow_dispatch:
 
 concurrency:
@@ -11,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   # ==================================================================
@@ -124,8 +125,20 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Aplicar versao da tag ao JAR
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: mvn -B versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
+
       - name: Gerar fat JAR
         run: mvn -B package -DskipTests
+
+      - name: Publicar JAR para o job de release
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecf-notificador-jar-release
+          path: target/ECF-Notificador-*.jar
+          if-no-files-found: error
 
   # ==================================================================
   # BINARIO NATIVO PARA RELEASE (GraalVM Native Image)
@@ -133,15 +146,14 @@ jobs:
   #    Gera o .exe sem JVM. Roda em windows-latest porque o binario e
   #    especifico da plataforma.
   #
-  #    continue-on-error: a aplicacao usa AWT/Swing e o java.desktop nao
-  #    tem suporte oficial no Native Image. Remova quando a limitacao
-  #    deixar de existir e o binario passar a ser obrigatorio.
+  #    O executavel e obrigatorio para uma tag de release. Se o Native Image
+  #    falhar, a release nao e publicada.
   # ==================================================================
   native-release:
     name: Binario nativo para release
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [ verify ]
     runs-on: windows-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -159,16 +171,90 @@ jobs:
         run: mvn -B -Pnative -DskipTests package
 
       - name: Publicar binario nativo
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ecf-notificador-native-release
           path: target/*.exe
-          if-no-files-found: warn
+          if-no-files-found: error
 
-      - name: Publicar JAR
+  # ==================================================================
+  # PUBLICACAO DA GITHUB RELEASE
+  # ==================================================================
+  publish-release:
+    name: Publicar GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ release-artifact, native-release ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Baixar JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: ecf-notificador-jar-release
+          path: release-assets
+
+      - name: Baixar executavel nativo
+        uses: actions/download-artifact@v4
+        with:
+          name: ecf-notificador-native-release
+          path: release-assets
+
+      - name: Normalizar nomes dos anexos da release
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          exe="$(find release-assets -type f -name '*.exe' -print -quit)"
+          jar="$(find release-assets -type f -name '*.jar' -print -quit)"
+          test -n "$exe"
+          test -n "$jar"
+          mv "$exe" "release-assets/ECF-Notificador-${version}.exe"
+          mv "$jar" "release-assets/ECF-Notificador-${version}.jar"
+
+      - name: Gerar changelog completo
+        shell: bash
+        run: |
+          previous_tag="$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
+          {
+            echo "# ECF-Notificador ${GITHUB_REF_NAME}"
+            echo
+            if [ -n "$previous_tag" ]; then
+              echo "Alteracoes desde ${previous_tag}:"
+              echo
+              git log --no-merges --pretty=format:'- %h %s (%an)' "${previous_tag}..${GITHUB_SHA}"
+            else
+              echo "Historico completo do projeto:"
+              echo
+              git log --no-merges --pretty=format:'- %h %s (%an)' "${GITHUB_SHA}"
+            fi
+            echo
+          } > CHANGELOG.md
+          test -s CHANGELOG.md
+
+      - name: Criar GitHub Release com anexos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo "Binario principal: ECF-Notificador-${version}.exe"
+            echo
+            echo "JAR alternativo: ECF-Notificador-${version}.jar"
+            echo
+            cat CHANGELOG.md
+          } > RELEASE_NOTES.md
+          gh release create "${GITHUB_REF_NAME}" \
+            --verify-tag \
+            --title "ECF-Notificador ${GITHUB_REF_NAME}" \
+            --notes-file RELEASE_NOTES.md \
+            release-assets/* CHANGELOG.md
+
+      - name: Publicar changelog como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: ecf-notificador-release
-          path: target/ECF-Notificador-*.jar
+          name: ecf-notificador-changelog
+          path: CHANGELOG.md
           if-no-files-found: error
