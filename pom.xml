@@ -53,6 +53,8 @@
         <nvd.api.key></nvd.api.key>
 
         <enforcerVersion>3.6.3</enforcerVersion>
+        <pitestVersion>1.19.0</pitestVersion>
+        <pitestJunit5Version>1.2.1</pitestJunit5Version>
     </properties>
 
     <dependencyManagement>
@@ -495,6 +497,72 @@
                             <buildArgs>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Mutation testing da logica de dominio. Intencionalmente separado
+             do verify: e mais caro e nao deve bloquear o feedback cotidiano. -->
+        <profile>
+            <id>mutation</id>
+            <properties>
+                <!-- PIT 1.19 ainda nao interpreta bytecode Java 25 (major 69).
+                     O alvo de mutacao usa apenas APIs compativeis com Java 21. -->
+                <maven.compiler.release>21</maven.compiler.release>
+                <jacoco.skip>true</jacoco.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>${pitestVersion}</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>${pitestJunit5Version}</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <targetClasses>
+                                <param>app.utils.VersionComparator</param>
+                                <param>app.utils.TextSanitizer</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>app.utils.TextSanitizerTest</param>
+                                <param>app.utils.VersionComparatorTest</param>
+                            </targetTests>
+                            <excludedClasses>
+                                <param>app.service.NotificationService*</param>
+                                <param>app.service.TaskDialogService*</param>
+                                <param>app.service.TrayIconService*</param>
+                                <param>app.utils.ThemeService*</param>
+                                <param>app.utils.IconLoader*</param>
+                                <param>app.service.EcfLatestVersionServiceHttpTest*</param>
+                                <param>app.service.GistSettingsLoaderHttpTest*</param>
+                                <param>app.service.UpdateFlowEndToEndTest*</param>
+                                <param>app.service.ConfigurationContractTest*</param>
+                            </excludedClasses>
+                            <excludedTestClasses>
+                                <param>*HttpTest</param>
+                                <param>*EndToEndTest</param>
+                                <param>*TestUtil*</param>
+                            </excludedTestClasses>
+                            <outputFormats>
+                                <param>HTML</param>
+                                <param>XML</param>
+                            </outputFormats>
+                            <mutationThreshold>60</mutationThreshold>
+                            <timeoutConstant>30000</timeoutConstant>
+                            <timeoutFactor>2.0</timeoutFactor>
+                            <jvmArgs>
+                                <jvmArg>-Djava.awt.headless=true</jvmArg>
+                            </jvmArgs>
+                            <threads>2</threads>
+                            <timestampedReports>false</timestampedReports>
                         </configuration>
                     </plugin>
                 </plugins>

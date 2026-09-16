@@ -53,23 +53,8 @@ Com Maven instalado:
 mvn verify        # compila, testa, mede cobertura e roda a análise estática
 ```
 
-Se o `mvn` não estiver no `PATH`, o repositório traz scripts equivalentes que usam
-o JDK 25 e o repositório `.m2` diretamente:
-
-```powershell
-# Compila (release 25) e roda a suíte completa
-scripts\validar-tudo.cmd          # resumo em target\resumo.txt
-
-# Só uma classe de teste
-scripts\run-tests.cmd app.utils.VersionComparatorTest
-
-# Cobertura (gera target\jacoco-report\index.html)
-scripts\cobertura.cmd
-powershell -ExecutionPolicy Bypass -File scripts\relatorio-cobertura.ps1
-```
-
-> Os scripts usam `C:\Users\Rhama\.jdks\temurin-25.0.4.1` por padrão; defina
-> `ECF_JDK` (e opcionalmente `ECF_M2`) para apontar outro JDK/repositório.
+Se o `mvn` não estiver no `PATH`, configure o Maven ou use o Maven Wrapper antes
+de executar os comandos acima. O build exige JDK 25.
 
 ---
 

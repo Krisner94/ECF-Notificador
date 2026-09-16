@@ -75,6 +75,9 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Compilar classes para as analises
+        run: mvn -B -DskipTests compile
+
       - name: Checkstyle (inclui regra "proibido var")
         run: mvn -B checkstyle:check
 
@@ -145,8 +148,7 @@ jobs:
             echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
             KEY_ARG=""
           fi
-          mvn -B org.owasp:dependency-check-maven:check \
-            -DfailBuildOnCVSS=7 $KEY_ARG
+          mvn -B -Psecurity org.owasp:dependency-check-maven:check $KEY_ARG
 
       - name: Publicar relatorios de seguranca e SBOM
         if: always()
@@ -175,6 +177,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
 
       - name: Analise CodeQL (fluxo de dados)
         uses: github/codeql-action/init@v3
