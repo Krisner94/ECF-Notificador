@@ -1,4 +1,4 @@
-﻿name: Master
+name: Master
 
 # Pipeline de release: valida pushes na master e publica releases em tags v*.
 on:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Publicar relatorios
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: relatorios-master
           path: |
@@ -96,7 +96,7 @@ jobs:
 
       - name: Publicar SBOM e relatorios de seguranca
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-e-seguranca
           path: |
@@ -134,7 +134,7 @@ jobs:
         run: mvn -B package -DskipTests
 
       - name: Publicar JAR para o job de release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-jar-release
           path: target/ECF-Notificador-*.jar
@@ -171,7 +171,7 @@ jobs:
         run: mvn -B -Pnative -DskipTests package
 
       - name: Publicar binario nativo
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-native-release
           path: target/*.exe
@@ -253,7 +253,7 @@ jobs:
             release-assets/* CHANGELOG.md
 
       - name: Publicar changelog como artefato
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ecf-notificador-changelog
           path: CHANGELOG.md
