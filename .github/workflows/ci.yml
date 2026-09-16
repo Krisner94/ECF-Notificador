@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 # Dispara em Pull Requests (portao antes do merge) e em pushes para branches
 # de trabalho. A branch principal e tratada pelo workflow master.yml, evitando
@@ -186,16 +186,16 @@ jobs:
           cache: maven
 
       - name: Analise CodeQL (fluxo de dados)
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
           queries: security-extended,security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Executar CodeQL
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java-kotlin"
 
