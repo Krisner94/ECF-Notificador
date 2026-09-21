@@ -53,7 +53,7 @@
         <nvd.api.key></nvd.api.key>
 
         <enforcerVersion>3.6.3</enforcerVersion>
-        <pitestVersion>1.19.0</pitestVersion>
+        <pitestVersion>1.30.0</pitestVersion>
         <pitestJunit5Version>1.2.1</pitestJunit5Version>
     </properties>
 
