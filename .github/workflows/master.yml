@@ -1,4 +1,4 @@
-﻿name: Master
+name: Master
 
 # Pipeline de release: valida pushes na master e publica releases em tags v*.
 on:
@@ -73,7 +73,7 @@ jobs:
         run: mvn -B cyclonedx:makeAggregateBom
 
       - name: Restaurar cache da base NVD
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target/dependency-check-data
           key: dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('pom.xml') }}
