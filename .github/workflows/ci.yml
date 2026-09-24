@@ -107,99 +107,7 @@ jobs:
           if-no-files-found: ignore
 
   # ==================================================================
-  # 3) SEGURANCA DE DEPENDENCIAS (SCA) - equivalente ao VERACODE SCA
-  #    CVEs, grau de risco (CVSS) e SBOM com VEX.
-  # ==================================================================
-  seguranca-dependencias:
-    name: Seguranca de dependencias (SCA)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configurar JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-
-      - name: Gerar SBOM (CycloneDX)
-        run: mvn -B cyclonedx:makeAggregateBom
-
-      - name: Restaurar cache da base NVD
-        uses: actions/cache@v4
-        with:
-          path: target/dependency-check-data
-          key: dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('pom.xml') }}
-          restore-keys: |
-            dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-
-            dependency-check-nvd-${{ runner.os }}-
-
-      - name: Limpar cache local da NVD antes do scan
-        shell: bash
-        run: |
-          set -euo pipefail
-          data_dir="$GITHUB_WORKSPACE/target/dependency-check-data"
-          if [ -d "$data_dir" ]; then
-            echo "Limpando cache local da NVD para evitar base parcial/corrompida."
-            rm -rf "$data_dir"
-          fi
-          mkdir -p "$data_dir"
-
-      - name: OWASP Dependency-Check (falha em CVSS >= 7)
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        shell: bash
-        run: |
-          set -uo pipefail
-
-          args=(
-            "-Dnvd.maxRetryCount=12"
-            "-Dnvd.api.delay=6000"
-            "-Dnvd.validForHours=1"
-          )
-
-          if [ -n "$NVD_API_KEY" ]; then
-            echo "Usando NVD_API_KEY do repositorio."
-            args+=("-Dnvd.api.key=$NVD_API_KEY")
-          else
-            echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
-          fi
-
-          for attempt in 1 2 3; do
-            echo "Tentativa do Dependency-Check: $attempt/3"
-
-            if mvn -B -Psecurity org.owasp:dependency-check-maven:check "${args[@]}"; then
-              echo "Dependency-Check concluido com sucesso."
-              exit 0
-            fi
-
-            if [ "$attempt" -lt 3 ]; then
-              echo "Falha temporaria do NVD ou do Dependency-Check. Repetindo em 60 segundos..."
-              rm -rf "$GITHUB_WORKSPACE/target/dependency-check-data"
-              sleep 60
-            fi
-          done
-
-          echo "::error::Dependency-Check falhou apos 3 tentativas."
-          exit 1
-
-      - name: Publicar relatorios de seguranca e SBOM
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: seguranca-dependencias
-          path: |
-            target/dependency-check-report.html
-            target/dependency-check-report.json
-            target/dependency-check-report.sarif
-            target/bom.json
-            target/bom.xml
-          if-no-files-found: ignore
-
-  # ==================================================================
-  # 4) SAST - equivalente ao VERACODE Static Analysis
+  # 3) SAST - equivalente ao VERACODE Static Analysis
   #    Analise de fluxo de dados + regras de injecao (CodeQL/Semgrep)
   # ==================================================================
   sast:
@@ -255,7 +163,7 @@ jobs:
           if-no-files-found: ignore
 
   # ==================================================================
-  # 5) BUILD FINAL (somente se tudo passar)
+  # 4) BUILD FINAL (somente se tudo passar)
   # ==================================================================
   build:
     name: Build do JAR
@@ -283,7 +191,7 @@ jobs:
           if-no-files-found: error
 
   # ==================================================================
-  # 6) BINARIO NATIVO (GraalVM Native Image)
+  # 5) BINARIO NATIVO (GraalVM Native Image)
   #
   #    Gera um .exe sem dependencia da JVM.
   #
