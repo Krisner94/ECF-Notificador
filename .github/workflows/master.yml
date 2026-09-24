@@ -78,7 +78,7 @@ jobs:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: dependency-check-nvd-${{ runner.os }}
           restore-keys: |
-            dependency-check-nvd-
+            dependency-check-nvd-v2-
 
       - name: OWASP Dependency-Check
         env:
