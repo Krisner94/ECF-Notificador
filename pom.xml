@@ -49,6 +49,9 @@
         <cyclonedxVersion>2.9.3</cyclonedxVersion>
         <dependencyCheckVersion>12.1.3</dependencyCheckVersion>
         <cvssFailThreshold>7</cvssFailThreshold>
+        <!-- Base NVD isolada no target para nao reaproveitar cache corrompido. -->
+        <dependencyCheckDataDirectory>${project.basedir}/target/dependency-check-data</dependencyCheckDataDirectory>
+        <nvd.validForHours>1</nvd.validForHours>
         <!-- Sobrescrita na pipeline com -Dnvd.api.key=... -->
         <nvd.api.key></nvd.api.key>
 
@@ -395,13 +398,19 @@
                         <artifactId>dependency-check-maven</artifactId>
                         <version>${dependencyCheckVersion}</version>
                         <configuration>
+                            <autoUpdate>true</autoUpdate>
                             <failBuildOnCVSS>${cvssFailThreshold}</failBuildOnCVSS>
                             <formats>
                                 <format>HTML</format>
                                 <format>JSON</format>
                                 <format>SARIF</format>
                             </formats>
+                            <dataDirectory>${dependencyCheckDataDirectory}</dataDirectory>
+                            <nvdDataDirectory>${dependencyCheckDataDirectory}</nvdDataDirectory>
                             <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                            <nvdApiDelay>6000</nvdApiDelay>
+                            <nvdMaxRetryCount>12</nvdMaxRetryCount>
+                            <nvdValidForHours>${nvd.validForHours}</nvdValidForHours>
                             <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
                         </configuration>
                         <executions>

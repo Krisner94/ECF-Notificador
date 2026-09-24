@@ -130,25 +130,60 @@ jobs:
       - name: Restaurar cache da base NVD
         uses: actions/cache@v4
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-${{ runner.os }}-${{ github.run_id }}
+          path: target/dependency-check-data
+          key: dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('pom.xml') }}
           restore-keys: |
-            nvd-${{ runner.os }}-
+            dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-
+            dependency-check-nvd-${{ runner.os }}-
+
+      - name: Limpar cache local da NVD antes do scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          data_dir="$GITHUB_WORKSPACE/target/dependency-check-data"
+          if [ -d "$data_dir" ]; then
+            echo "Limpando cache local da NVD para evitar base parcial/corrompida."
+            rm -rf "$data_dir"
+          fi
+          mkdir -p "$data_dir"
 
       - name: OWASP Dependency-Check (falha em CVSS >= 7)
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        shell: bash
         run: |
-          # Monta o argumento da chave NVD apenas quando o secret existe.
-          # Sem a chave o scan continua, porem bem mais lento.
+          set -uo pipefail
+
+          args=(
+            "-Dnvd.maxRetryCount=12"
+            "-Dnvd.api.delay=6000"
+            "-Dnvd.validForHours=1"
+          )
+
           if [ -n "$NVD_API_KEY" ]; then
             echo "Usando NVD_API_KEY do repositorio."
-            KEY_ARG="-Dnvd.api.key=$NVD_API_KEY"
+            args+=("-Dnvd.api.key=$NVD_API_KEY")
           else
             echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
-            KEY_ARG=""
           fi
-          mvn -B -Psecurity org.owasp:dependency-check-maven:check $KEY_ARG
+
+          for attempt in 1 2 3; do
+            echo "Tentativa do Dependency-Check: $attempt/3"
+
+            if mvn -B -Psecurity org.owasp:dependency-check-maven:check "${args[@]}"; then
+              echo "Dependency-Check concluido com sucesso."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Falha temporaria do NVD ou do Dependency-Check. Repetindo em 60 segundos..."
+              rm -rf "$GITHUB_WORKSPACE/target/dependency-check-data"
+              sleep 60
+            fi
+          done
+
+          echo "::error::Dependency-Check falhou apos 3 tentativas."
+          exit 1
 
       - name: Publicar relatorios de seguranca e SBOM
         if: always()

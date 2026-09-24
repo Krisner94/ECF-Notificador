@@ -75,10 +75,25 @@ jobs:
       - name: Restaurar cache da base NVD
         uses: actions/cache@v4
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: dependency-check-nvd-${{ runner.os }}
+          path: target/dependency-check-data
+          key: dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('pom.xml') }}
           restore-keys: |
-            dependency-check-nvd-v2-
+            dependency-check-nvd-${{ runner.os }}-${{ github.ref_name }}-
+            dependency-check-nvd-${{ runner.os }}-
+
+      - name: Validar base local do Dependency-Check
+        shell: bash
+        run: |
+          set -euo pipefail
+          data_dir="$GITHUB_WORKSPACE/target/dependency-check-data"
+
+          if [ -d "$data_dir" ]; then
+            echo "Removendo base da NVD local possivelmente corrompida/incompleta."
+            rm -rf "$data_dir"
+          fi
+
+          mkdir -p "$data_dir"
+          echo "Diretorio NVD limpo e pronto para download."
 
       - name: OWASP Dependency-Check
         env:
@@ -88,8 +103,9 @@ jobs:
           set -uo pipefail
 
           args=(
-            "-Dnvd.maxRetryCount=10"
+            "-Dnvd.maxRetryCount=12"
             "-Dnvd.api.delay=6000"
+            "-Dnvd.validForHours=1"
           )
 
           if [[ -n "$NVD_API_KEY" ]]; then
@@ -97,7 +113,6 @@ jobs:
             args+=("-Dnvd.api.key=$NVD_API_KEY")
           else
             echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
-            args+=()
           fi
 
           for attempt in 1 2 3; do
@@ -109,8 +124,9 @@ jobs:
             fi
 
             if [[ "$attempt" -lt 3 ]]; then
-              echo "Falha temporaria do NVD ou do Dependency-Check. Repetindo em 30 segundos..."
-              sleep 30
+              echo "Falha temporaria do NVD ou do Dependency-Check. Repetindo em 60 segundos..."
+              rm -rf "$GITHUB_WORKSPACE/target/dependency-check-data"
+              sleep 60
             fi
           done
 
