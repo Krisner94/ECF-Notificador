@@ -76,23 +76,46 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-master-${{ runner.os }}-${{ github.run_id }}
+          key: dependency-check-nvd-${{ runner.os }}
           restore-keys: |
-            nvd-${{ runner.os }}-
+            dependency-check-nvd-
 
       - name: OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        shell: bash
         run: |
-          # Monta o argumento da chave NVD apenas quando o secret existe.
-          if [ -n "$NVD_API_KEY" ]; then
+          set -uo pipefail
+
+          args=(
+            "-Dnvd.maxRetryCount=10"
+            "-Dnvd.api.delay=6000"
+          )
+
+          if [[ -n "$NVD_API_KEY" ]]; then
             echo "Usando NVD_API_KEY do repositorio."
-            KEY_ARG="-Dnvd.api.key=$NVD_API_KEY"
+            args+=("-Dnvd.api.key=$NVD_API_KEY")
           else
             echo "::warning::Secret NVD_API_KEY nao configurado. O scan sera mais lento."
-            KEY_ARG=""
+            args+=()
           fi
-          mvn -B -Psecurity org.owasp:dependency-check-maven:check $KEY_ARG
+
+          for attempt in 1 2 3; do
+            echo "Tentativa do Dependency-Check: $attempt/3"
+
+            if mvn -B -Psecurity org.owasp:dependency-check-maven:check "${args[@]}"; then
+              echo "Dependency-Check concluido com sucesso."
+              exit 0
+            fi
+
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "Falha temporaria do NVD ou do Dependency-Check. Repetindo em 30 segundos..."
+              sleep 30
+            fi
+          done
+
+          echo "::error::Dependency-Check falhou apos 3 tentativas."
+          exit 1
 
       - name: Publicar SBOM e relatorios de seguranca
         if: always()
