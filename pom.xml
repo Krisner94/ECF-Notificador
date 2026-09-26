@@ -25,7 +25,7 @@
         <jacksonVersion>2.22.2</jacksonVersion>
         <jnaVersion>5.19.1</jnaVersion>
         <slf4jVersion>2.0.9</slf4jVersion>
-        <jsoupVersion>1.18.3</jsoupVersion>
+        <jsoupVersion>1.23.2</jsoupVersion>
 
         <assertjVersion>3.26.3</assertjVersion>
         <wiremockVersion>3.10.0</wiremockVersion>
