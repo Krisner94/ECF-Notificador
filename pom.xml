@@ -27,7 +27,7 @@
         <slf4jVersion>2.0.9</slf4jVersion>
         <jsoupVersion>1.18.3</jsoupVersion>
 
-        <assertjVersion>3.26.3</assertjVersion>
+        <assertjVersion>3.27.7</assertjVersion>
         <wiremockVersion>3.10.0</wiremockVersion>
 
         <compilerPluginVersion>3.13.0</compilerPluginVersion>
