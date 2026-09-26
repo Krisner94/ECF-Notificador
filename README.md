@@ -29,9 +29,9 @@ Baixe o `ECF-Notificador-2.0.0.exe` pelo botão no topo desta página. O `.exe` 
 .\ECF-Notificador-2.0.0.exe
 ```
 
-> ⚠️ Nesta versão o `.exe` exibe o **popup de atualização**, mas ainda **não** tem
-> o ícone na bandeja nem a tela de Configurações — esses dois usam AWT/Swing, que
-> o Native Image não suporta. Veja `docs/NATIVE.md` para o detalhamento.
+> ✅ O `.exe` é **totalmente funcional**: bandeja, menu de contexto, tela de
+> Configurações e popup de atualização — tudo em Win32 nativo, sem depender de
+> AWT/Swing. Detalhes em `docs/NATIVE.md`.
 
 ### **Opção B — fat JAR**
 
@@ -218,7 +218,7 @@ Depois, em ambos os casos:
 ### **🧬 Executável nativo (`.exe`)**
 
 - **O `.exe` precisa de Java instalado?** Não. Ele foi gerado com GraalVM Native Image e roda direto.
-- **No `.exe` a bandeja e a tela de Configurações funcionam?** Ainda não. Essas duas partes usam AWT/Swing, que o Native Image não suporta. O popup de atualização funciona normalmente porque é 100% nativo do Windows (TaskDialog via JNA). Use o `.jar` se precisar da bandeja.
+- **No `.exe` a bandeja e a tela de Configurações funcionam?** Sim. Elas foram reescritas em Win32 nativo (JNA): bandeja via `Shell_NotifyIcon` e Configurações via diálogo Win32. Nada depende de AWT/Swing no binário nativo.
 - **Como gero o `.exe`?** Com GraalVM 25: `mvn -Pnative -DskipTests package`. Passo a passo em `docs/NATIVE.md`.
 
 ---

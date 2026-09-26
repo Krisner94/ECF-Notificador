@@ -6,28 +6,22 @@ O alvo do projeto é **Java 25**, e o binário nativo também é gerado para Jav
 
 ---
 
-## ⚠️ Leia isto primeiro: limitação de interface gráfica
+## ✅ Estado da interface gráfica no binário nativo
 
-O ECF-Notificador usa **AWT/Swing** em alguns pontos:
+O `java.desktop` (AWT/Swing) **não tem suporte no Native Image**, então toda a
+interface do executável nativo foi reescrita em **Win32 via JNA** — o mesmo
+padrão do `TaskDialogService`. O `App` escolhe a implementação em tempo de
+execução: no binário nativo usa as classes `*.win32`, no JAR usa o Swing.
 
-| Uso | Onde | Depende de AWT? |
+| Uso | No binário nativo | No JAR |
 |---|---|---|
-| `SystemTray` + `TrayIcon` | Ícone na bandeja do sistema | ✅ Sim |
-| `JDialog` + `JOptionPane` | Tela de Configurações | ✅ Sim |
-| `TaskDialog` (JNA/Win32) | Popup de atualização | ❌ **Não** — é nativo do Windows |
-| `java.awt.Desktop` | Abrir a página de download | ✅ Sim (só ao aceitar o popup) |
+| Ícone na bandeja (`SystemTray`) | ✅ `Shell_NotifyIconW` (`NativeTrayService`) | `TrayIconService` (AWT) |
+| Tela de Configurações (`JDialog`) | ✅ diálogo Win32 (`NativeConfigDialog`) | `ConfigForm` (Swing) |
+| Popup de atualização | ✅ `TaskDialog` (JNA/Win32) | idem |
+| Abrir a página de download | ✅ `ShellExecuteW` (JNA) | `java.awt.Desktop` |
 
-O módulo **`java.desktop` não tem suporte oficial no Native Image**. Na prática:
-
-- ❌ A bandeja do sistema (`SystemTray`/`TrayIcon`) **não funciona** em binário nativo.
-- ❌ A janela de Configurações em Swing **não funciona**.
-- ✅ Toda a lógica **sem interface** funciona: leitura do Gist, HTTP, comparação de versões, e — crucialmente — o **popup nativo do Windows**, que é feito via **JNA + Win32 (`TaskDialog`)**, não via Swing.
-
-> **Conclusão prática:** o binário nativo exibe a **notificação nativa de atualização** (o propósito principal do programa), mas **não** a bandeja nem a tela de configurações. Por isso a distribuição recomendada continua sendo o fat JAR, a menos que você queira apenas o aviso de atualização.
-
-### Por que o pipeline não falha por causa disso
-
-Os jobs `nativo` (em `ci.yml`) e `native-release` (em `master.yml`) usam `continue-on-error: true`. Assim a pipeline **tenta** gerar o binário e mostra o resultado, mas **não deixa o build vermelho** enquanto essa limitação existir. Quando o binário passar a ser obrigatório, remova essa linha.
+O `java.desktop` continua **apenas** no caminho do JAR; no caminho nativo
+nenhum componente AWT/Swing é acionado.
 
 ---
 
@@ -186,12 +180,13 @@ Só entram na imagem nativa os testes que fazem sentido no modelo *closed-world*
 2. `mvn -Pnative-test test`
 3. O relatório fica em `target/surefire-reports/`, no mesmo formato da execução normal.
 
-### Limitação que permanece
+### O que ainda exige atenção
 
-A bandeja (`SystemTray`) e a tela de Configurações (`JDialog`) continuam fora do
-alcance do binário nativo, pelo motivo já explicado no início deste documento:
-`java.desktop` não tem suporte oficial no Native Image. Nenhuma configuração de
-metadata resolve isso.
+A UI nativa usa estruturas e callbacks JNA (`NOTIFYICONDATAW`, `MSG`,
+`WNDCLASSEXW`, `WindowProc`). Essas classes estão registradas em
+`reachability-metadata.json` para o Native Image enxergá-las via reflection. Se
+novas estruturas/callbacks forem adicionados, é preciso atualizar esse arquivo —
+ou rodar o Tracing Agent, como descrito acima.
 
 ---
 
@@ -215,34 +210,24 @@ Erros comuns e o que significam:
 
 ---
 
-## 🧭 Caminhos possíveis, daqui pra frente
+## 🧭 Caminho adotado
 
-Como o `java.desktop` é a barreira, há três estratégias. Escolha conforme a prioridade do produto:
+A **Opção B** foi implementada: a bandeja e a tela de Configurações foram
+reescritas em **JNA + Win32** (`NativeTrayService` via `Shell_NotifyIconW` e
+`NativeConfigDialog` via `CreateWindowExW`), e o popup de atualização já usava
+`TaskDialog`. O executável nativo fica **totalmente funcional** — bandeja, menu
+de contexto, tela de Configurações e notificação — sem depender de `java.desktop`.
 
-### Opção A — Manter o JAR como distribuição principal (recomendado hoje)
-
-O programa continua distribuído como fat JAR (`java -jar`). O binário nativo é gerado "quando der" e usado apenas em cenários sem interface. **Custo: zero.** É o que o pipeline faz hoje.
-
-### Opção B — Bandeja e tela de configuração via Win32 em vez de Swing
-
-Reescrever a janela de Configurações e a bandeja usando **JNA + Win32** (no mesmo estilo do `TaskDialogService` já existente): `Shell_NotifyIcon` para a bandeja e `TaskDialog`/`CreateWindow` para as configurações, removendo o Swing do caminho crítico.
-
-Isso tornaria o binário nativo **totalmente funcional**, pois elimina o `java.desktop`.
-
-**Impacto:** refatoração média. A base já está pronta — `TaskDialogService` e `WinApiService` mostram exatamente o padrão de interop Win32 a seguir.
-
-### Opção C — Runtime alternativo (Spring Boot Native / Quarkus)
-
-Não se aplica: o problema não é framework, é `java.desktop`. Trocar de framework não resolve.
+O fat JAR continua disponível como opção para quem prefere rodar com Java 25.
 
 ---
 
-## ✅ Checklist para habilitar o binário de verdade
+## ✅ Checklist de validacao do binario
 
-- [ ] Instalar **GraalVM for JDK 25** localmente e conferir `java -version` e `native-image --version`
-- [ ] Gerar o binário com `mvn -Pnative -DskipTests package`
-- [ ] Testar o `.exe` numa máquina **sem Java**
-- [ ] Se faltar registro de reflexão, rodar o Tracing Agent e commitar a metadata adicional
-- [ ] Decidir entre Opção A, B ou C acima
-- [ ] Se optar por A: manter `continue-on-error: true` (estado atual)
-- [ ] Se optar por B: remover `continue-on-error: true` após validar
+- [x] Reescrita da bandeja em `Shell_NotifyIconW` (JNA)
+- [x] Reescrita da tela de Configuracoes em `CreateWindowExW` (JNA)
+- [x] Abertura da pagina de download via `ShellExecuteW` (sem `java.awt.Desktop`)
+- [x] Metadata de reachability registrada para as novas estruturas/callbacks
+- [ ] Gerar o binario com `mvn -Pnative -DskipTests package`
+- [ ] Testar o `.exe` numa maquina **sem Java**: bandeja, menu, duplo clique,
+      Configuracoes e popup de atualizacao

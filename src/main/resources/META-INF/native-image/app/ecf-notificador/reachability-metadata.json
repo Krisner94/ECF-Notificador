@@ -51,6 +51,53 @@
       "type": "app.service.UpdateService$CheckResult",
       "allDeclaredConstructors": true,
       "allPublicMethods": true
+    },
+    {
+      "comment": "Estrutura JNA da bandeja nativa (Shell_NotifyIconW).",
+      "type": "app.service.win32.Shell32$NOTIFYICONDATAW",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true
+    },
+    {
+      "comment": "Estruturas JNA da UI nativa (janelas, mensagens e coordenadas).",
+      "type": "app.service.win32.User32Ui$POINT",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "app.service.win32.User32Ui$MSG",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "app.service.win32.User32Ui$WNDCLASSEXW",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "comment": "Callbacks JNA (WindowProc) da bandeja e da tela de configuracoes.",
+      "type": "app.service.win32.NativeTrayService$WindowProcImpl",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true
+    },
+    {
+      "type": "app.form.NativeConfigDialog$DialogProc",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true
     }
   ]
 }

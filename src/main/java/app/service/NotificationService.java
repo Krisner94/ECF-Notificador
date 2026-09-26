@@ -1,7 +1,9 @@
 package app.service;
 
+import app.service.win32.Shell32;
 import app.utils.Message;
 import app.utils.TextSanitizer;
+import com.sun.jna.Pointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,9 @@ public class NotificationService {
     private static final int MB_SETFOREGROUND = 0x00010000;
     private static final int MB_TOPMOST = 0x00040000;
 
+    /** SW_SHOWNORMAL - janela exibida no estado normal. */
+    private static final int SW_SHOWNORMAL = 1;
+
     private final String downloadUrl;
     private final String iconPath;
 
@@ -42,14 +47,20 @@ public class NotificationService {
     public void showUpdate(String current, String latest) {
         // O popup e modal: chamado da EDT (itens de menu da bandeja), congelaria
         // a interface. Desviar para uma thread propria mantem o mesmo caminho
-        // para menu, duplo clique e agendador.
-        if (SwingUtilities.isEventDispatchThread()) {
+        // para menu, duplo clique e agendador. Em binario nativo nao ha EDT e o
+        // proprio SwingUtilities pode tentar inicializar o AWT, entao o desvio
+        // e ignorado nesse modo.
+        if (!isNativeImage() && SwingUtilities.isEventDispatchThread()) {
             Thread worker = new Thread(() -> runUpdateFlow(current, latest), "ecf-notificacao");
             worker.setDaemon(true);
             worker.start();
             return;
         }
         runUpdateFlow(current, latest);
+    }
+
+    private static boolean isNativeImage() {
+        return System.getProperty("org.graalvm.nativeimage.imagecode") != null;
     }
 
     /**
@@ -130,6 +141,16 @@ public class NotificationService {
     private void openDownloadPage(String urlSegura) {
         if (urlSegura == null) {
             log.warn("Pagina de download nao aberta: URL invalida.");
+            return;
+        }
+        // No Windows usa ShellExecuteW: o java.awt.Desktop nao funciona em
+        // binario nativo (GraalVM), onde o AWT nao tem suporte.
+        if (isWindows()) {
+            Pointer result = Shell32.Api.INSTANCE.ShellExecuteW(
+                    null, "open", urlSegura, null, null, SW_SHOWNORMAL);
+            if (Pointer.nativeValue(result) <= 32) {
+                log.error("ShellExecuteW falhou ao abrir a pagina de download.");
+            }
             return;
         }
         try {

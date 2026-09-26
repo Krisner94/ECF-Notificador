@@ -247,6 +247,15 @@
                                     </limits>
                                 </rule>
                             </rules>
+                            <excludes>
+                                <!-- UI nativa (Win32 via JNA): so executa no
+                                     binario nativo em Windows, impossivel de
+                                     exercitar na suite Linux/headless. As
+                                     partes puras sao cobertas por testes
+                                     dedicados (NativeTrayServiceTest). -->
+                                <exclude>app/service/win32/**</exclude>
+                                <exclude>app/form/NativeConfigDialog</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                 </executions>
