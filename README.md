@@ -2,6 +2,12 @@
 
 O **ECF-Notificador** é um assistente digital que monitora automaticamente o site da Receita Federal para você. Ele verifica se existe uma nova versão do programa **ECF (Escrituração Contábil Fiscal)** disponível, evitando que você precise checar o site manualmente todos os dias.
 
+<div align="center">
+
+[![Baixar para Windows](https://img.shields.io/badge/Baixar_para_Windows-ECF--Notificador--2.0.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Krisner94/ECF-Notificador/releases/latest/download/ECF-Notificador-2.0.0.exe)
+
+</div>
+
 ---
 
 ## 📦 1. Como Obter o Programa
@@ -17,10 +23,10 @@ O **ECF-Notificador** é um assistente digital que monitora automaticamente o si
 
 ### **Opção A — Executável nativo (recomendado)**
 
-O `.exe` gerado com GraalVM **não precisa de Java instalado**:
+Baixe o `ECF-Notificador-2.0.0.exe` pelo botão no topo desta página. O `.exe` gerado com GraalVM **não precisa de Java instalado**:
 
 ```powershell
-.\ECF-Notificador.exe
+.\ECF-Notificador-2.0.0.exe
 ```
 
 > ⚠️ Nesta versão o `.exe` exibe o **popup de atualização**, mas ainda **não** tem
@@ -36,6 +42,10 @@ mvn clean package
 ```
 
 O arquivo `ECF-Notificador-2.0.jar` (fat JAR com todas as dependências) será gerado na pasta `target/`.
+
+> ℹ️ O fat JAR **não é distribuído** na release — ele é gerado apenas localmente
+> (ou pelo CI) para quem prefere rodar com Java 25. O download oficial da release
+> é o executável `.exe`.
 
 ### **Execução**
 
@@ -96,7 +106,7 @@ Gist sobrescreve os valores na próxima atualização.
 
 ### **Primeira Execução**
 
-1. **Abrir o programa:** execute `java -jar ECF-Notificador-2.0.jar`.
+1. **Abrir o programa:** execute o `ECF-Notificador-2.0.0.exe` (baixado pelo botão no topo da página). Se estiver rodando a partir do código, use `java -jar target/ECF-Notificador-2.0.jar`.
 2. **Ícone na Bandeja:** o programa roda discretamente ao lado do relógio do Windows.
 3. **Configuração inicial:** verifique se o caminho da ECF está correto nas configurações.
 
@@ -231,7 +241,7 @@ Depois, em ambos os casos:
 
 ## 📄 Licença e Informações Técnicas
 
-- **Versão Atual:** 1.0.0
+- **Versão Atual:** 2.0.0
 - **Plataforma:** Windows 10/11
 - **Tecnologia:** Java 25 (Maven) com JNA e FlatLaf
 - **Empacotamento:** fat JAR (Shade) ou executável nativo (GraalVM Native Image)
