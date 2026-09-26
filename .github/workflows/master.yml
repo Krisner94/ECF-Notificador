@@ -191,11 +191,18 @@ jobs:
             echo
             cat CHANGELOG.md
           } > RELEASE_NOTES.md
-          gh release create "${GITHUB_REF_NAME}" \
-            --verify-tag \
-            --title "ECF-Notificador ${GITHUB_REF_NAME}" \
-            --notes-file RELEASE_NOTES.md \
-            release-assets/* CHANGELOG.md
+          # Idempotente: se a release ja existir (ex.: criada manualmente),
+          # apenas anexa os artefatos e nao falha o pipeline.
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} ja existe; anexando artefatos."
+            gh release upload "${GITHUB_REF_NAME}" release-assets/* CHANGELOG.md --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              --verify-tag \
+              --title "ECF-Notificador ${GITHUB_REF_NAME}" \
+              --notes-file RELEASE_NOTES.md \
+              release-assets/* CHANGELOG.md
+          fi
 
       - name: Publicar changelog como artefato
         uses: actions/upload-artifact@v4
