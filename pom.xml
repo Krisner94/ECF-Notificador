@@ -50,7 +50,7 @@
 
         <enforcerVersion>3.6.3</enforcerVersion>
         <pitestVersion>1.19.0</pitestVersion>
-        <pitestJunit5Version>1.2.1</pitestJunit5Version>
+        <pitestJunit5Version>1.2.3</pitestJunit5Version>
     </properties>
 
     <dependencyManagement>
