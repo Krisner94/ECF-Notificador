@@ -30,9 +30,9 @@
         <assertjVersion>3.26.3</assertjVersion>
         <wiremockVersion>3.10.0</wiremockVersion>
 
-        <compilerPluginVersion>3.13.0</compilerPluginVersion>
-        <jarPluginVersion>3.4.2</jarPluginVersion>
-        <shadePluginVersion>3.6.0</shadePluginVersion>
+        <compilerPluginVersion>3.16.0</compilerPluginVersion>
+        <jarPluginVersion>3.5.1</jarPluginVersion>
+        <shadePluginVersion>3.6.2</shadePluginVersion>
 
         <junitVersion>5.11.4</junitVersion>
         <surefireVersion>3.6.0</surefireVersion>
@@ -41,7 +41,7 @@
         <coverageMinimum>0.70</coverageMinimum>
 
         <checkstylePluginVersion>3.6.0</checkstylePluginVersion>
-        <checkstyleVersion>10.21.4</checkstyleVersion>
+        <checkstyleVersion>14.1.0</checkstyleVersion>
         <pmdPluginVersion>3.28.0</pmdPluginVersion>
         <spotbugsPluginVersion>4.10.4.1</spotbugsPluginVersion>
         <findsecbugsVersion>1.14.0</findsecbugsVersion>
